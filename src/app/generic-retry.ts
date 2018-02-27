@@ -30,7 +30,7 @@ export const genericRetryStrategy = ({
       );
       // retry after 1s, 2s, etc...
       return timer(retryAttempt * scalingDuration);
-    }),
-    finalize(() => console.log('We are done!'))
+    })
+    // finalize(() => console.log('We are done!'))
   );
 };

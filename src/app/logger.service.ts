@@ -6,6 +6,7 @@ import { tap, zip, catchError, filter, bufferTime, concatMap, share, retryWhen, 
 import { range } from 'rxjs/observable/range';
 import { timer } from 'rxjs/observable/timer';
 import { of } from 'rxjs/observable/of';
+import { _throw } from 'rxjs/observable/throw';
 
 import { genericRetryStrategy } from './generic-retry';
 import { HttpClient } from '@angular/common/http';
@@ -14,12 +15,12 @@ import { HttpClient } from '@angular/common/http';
 export class LoggerService {
   private sendToServer = new Subject<LogMessage>();
 
-  public submitted = this.sendToServer
+  public submissionStream = this.sendToServer
       .pipe(
         // only submit those having a given property
         filter(log => log.level === 'ERROR' || log.level === 'FATAL'),
 
-        // wait 5 secs and submit in batches
+        // only emit every 5 seconds
         bufferTime(5000),
 
         // emit only if there are values to submit
@@ -29,35 +30,20 @@ export class LoggerService {
         tap(x => console.log('sending..', x)),
 
         concatMap((data: LogMessage[]) => {
-          return this.http.post('/someendpoint', data)
+          return this.http.post('/api/logs', data)
             .pipe(
               retryWhen(genericRetryStrategy({
                 maxRetryAttempts: 3,
                 scalingDuration: 1000
               })),
               catchError(error => {
-                console.log('Client: Got an error')
-                return of(error)
+                console.log('Client: Got an error');
+                return _throw({
+                  error: error,
+                  data: data
+                });
               })
             );
-            
-            // .pipe(
-            //   retryWhen(attempts => {
-            //     return attempts
-            //       .pipe(
-            //         // 5 trials, generate 1 -> 5
-            //         zip(range(1,3), (_, i) => i),
-            //         delayWhen(i => {
-            //           const retryDelay = i * 1000;
-            //           console.log(`Delaying retry by ${retryDelay} secs`);
-            //           return timer(retryDelay);
-            //         }),
-            //         catchError(error => {
-            //           console.log('Client: Got an error')
-            //           return of(error)
-            //         })
-            //       );
-            //   })
         }),
 
         // share the observable so that we
@@ -70,12 +56,12 @@ export class LoggerService {
   constructor(private backend: BackendService, private http: HttpClient) {
     // we subscribe here, otherwise since observables are lazy
     // nothing would happen
-    this.submitted.subscribe();
+    this.submissionStream.subscribe();
   }
 
   log(log: LogMessage) {
     this.sendToServer.next(log);
-    return this.submitted;
+    return this.submissionStream;
   }
 
 }

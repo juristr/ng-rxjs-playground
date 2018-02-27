@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { FormGroup,  FormBuilder } from '@angular/forms';
 import { LoggerService } from './logger.service';
 import { BackendService } from './backend.service';
+import { LogMessage } from './log-message';
 
 @Component({
   selector: 'my-app',
@@ -9,6 +10,7 @@ import { BackendService } from './backend.service';
   styleUrls: [ './app.component.css' ]
 })
 export class AppComponent  {
+  submittedMessages: LogMessage[] = [];
   form: FormGroup;
 
   constructor(private fb: FormBuilder, private loggerService: LoggerService, private backend: BackendService) {
@@ -17,9 +19,10 @@ export class AppComponent  {
       level: 'ERROR'
     });
 
-    this.loggerService.submitted.subscribe(
+    // subscribing to submissions
+    this.loggerService.submissionStream.subscribe(
       data => {
-        console.log('Data submitted to server', data);
+        console.log('client: got', data);
       },
       err => {
         console.error('An error happened', err);

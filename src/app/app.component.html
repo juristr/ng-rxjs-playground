@@ -22,9 +22,8 @@
 
 <div>
   <h3>Messages arrived</h3>
-  <label>Backend working: {{ backend.isWorking }}</label>
   <ul>
-    <li *ngFor="let msg of backend.getMessages()">
+    <li *ngFor="let msg of submittedMessages">
       {{ msg.message }} - {{ msg.level }}
     </li>
   </ul>  
